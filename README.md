@@ -170,9 +170,9 @@ Images are mad up of multiple layers that are stacked on top of each others.
 the two constructs become dependent or each other , you cannot delete the image untile the last container using it has been stopped and destroyed. 
 
 
-images get stored in centralised place called iamge registries.
+images get stored in centralised place called image registries.
 
 
 for alpine:edge to pull the latest version 
 
-
+#The relationship between images and cotnainer. 
