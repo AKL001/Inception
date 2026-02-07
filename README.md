@@ -307,3 +307,227 @@ Format: `(0.0.0.0:80->8080/tcp)`
 - **`docker container rm`** - Will delete a stopped container. You can specify containers by name or ID. It is recommended that you stop a container with the `docker container stop` command before deleting it with `docker container rm`
 
 - **`docker container inspect`** - Will show you detailed configuration and runtime information about a container. It accepts container names and container IDs as its main argument
+
+
+## Chapter 4: Containerizing an Application
+
+### Example Dockerfile
+
+```bash
+$ cat Dockerfile
+  FROM alpine     # (image layer)
+  LABEL maintainer="youremail@hotmail.com" 
+  RUN apk add --update nodejs nodejs-npm  # (image layer) 
+  COPY . /src  # (image layer) 
+  WORKDIR /src # (image metadata)
+  RUN npm install  # (image layer)
+  EXPOSE 8080   # (also metadata)
+  ENTRYPOINT ["node", "./app.js"]
+```
+
+Some instructions create image layers and some create metadata.
+
+**Examples of instructions that create layers:** `FROM`, `RUN`, `COPY`
+
+**Examples of instructions that create metadata:** `EXPOSE`, `WORKDIR`, `ENV`, `ENTRYPOINT`
+
+### Building the Image
+
+- **`docker image build -t <REPO:TAG> .`** - We include the `.` at the end of the command to tell Docker to use the shell's current working directory as the build context. `-t` tells Docker to name the image using the tag, making it easy to run with a human-readable name.
+
+- **`docker image history <REPO:TAG>`** - We can inspect or see instructions that added layers and metadata (metadata size would be 0).
+
+You can view the output of the `docker image build` command to see the general process for building an image. As the following snippet shows, the basic process is: spin up a temporary container > run the Dockerfile instruction inside of that container > save the results as a new image layer > remove the temporary container.
+
+### Multi-stage Builds
+
+Multi-stage builds are all about optimizing builds without adding complexity. And they deliver on the promise!
+
+Often when you build a multi-stage image, you would see a `<none>` image - that's called a **dangling image**. These are "blueprints" used to build the final product.
+
+**Pros:** For multi-stage builds we use `--from`. This helps with lightweight image production. Instead of having a production image that is 500MB in size, we divide that into 2 or 3 stages and copy the required dependencies from the stages.
+
+### Squashing Images
+
+**Pros:** It can help with the image size
+
+**Cons:** There is no caching hit, builds may take more time now
+
+### Dockerfile Commands Summary
+
+- **`docker image build`** - The command that reads a Dockerfile and containerizes an application. The `-t` flag tags the image, and the `-f` flag lets you specify the name and location of the Dockerfile. With the `-f` flag, it is possible to use a Dockerfile with an arbitrary name and in an arbitrary location. The build context is where your application files exist, and this can be a directory on your local Docker host or a remote Git repo.
+
+- **`FROM`** instruction in a Dockerfile specifies the base image for the new image you will build. It is usually the first instruction in a Dockerfile and a best practice is to use images from official repos on this line.
+
+- **`RUN`** instruction in a Dockerfile allows you to run commands inside the image. Each RUN instruction creates a single new layer.
+
+- **`COPY`** instruction in a Dockerfile adds files into the image as a new layer. It is common to use the COPY instruction to copy your application code into an image.
+
+- **`EXPOSE`** instruction in a Dockerfile documents the network port that the application uses.
+
+- **`ENTRYPOINT`** instruction in a Dockerfile sets the default application to run when the image is started as a container.
+
+- **Other Dockerfile instructions include:** `LABEL`, `ENV`, `ONBUILD`, `HEALTHCHECK`, `CMD` and more...
+
+---
+
+## Chapter 5: Deploying Apps with Docker Compose
+
+### Microservices
+
+Docker Compose is an external Python binary. You define multi-container (microservices) apps in a YAML file.
+
+### YAML File Structure
+
+YAML files have 4 top-level keys:
+- `version`
+- `services`
+- `networks`
+- `volumes`
+- `secrets`
+- `configs`
+
+#### Key Descriptions
+
+- **`version`** - The version key is mandatory, and it's always the first line at the root of the file. This defines the version of the Compose file format (basically the API). You should normally use the latest version.
+
+- **`services`** - The top-level services key is where you define the different application microservices. This example defines two services: a web front-end called `web-fe`, and an in-memory database called `redis`. Compose will deploy each of these services as its own container.
+
+- **`networks`** - The top-level networks key tells Docker to create new networks. By default, Compose will create bridge networks. These are single-host networks that can only connect containers on the same Docker host. However, you can use the driver property to specify different network types.
+
+### Example docker-compose.yml
+
+```yaml
+version: "3.8"
+services:
+  web-fe:
+    build: .
+    command: python app.py
+    ports:
+      - target: 5000
+        published: 5000
+    networks:
+      - counter-net
+    volumes:
+      - type: volume
+        source: counter-vol
+        target: /code
+  redis:
+    image: "redis:alpine"
+    networks:
+      counter-net:
+networks:
+  over-net:
+    driver: overlay
+    attachable: true
+volumes:
+  counter-vol:
+```
+
+### Docker Compose Commands
+
+- **`docker-compose up`** - Launch Docker Compose application
+
+By default, `docker-compose up` expects the name of the Compose file to be `docker-compose.yml`. If your Compose file has a different name, you need to specify it with the `-f` flag.
+
+- **`docker-compose -f <docker-compose-name> up`** - Specify a custom compose file name
+
+- **`docker-compose -f prod-equus-bass.yml up -d`** - Run it in the background (daemon mode)
+
+- **`docker-compose down`** - Bring the application down or stop it
+
+- **`docker-compose ps`** - List each container in the Compose app with current state, command, and network ports
+
+- **`docker-compose top`** - List running processes
+
+- **`docker-compose stop`** - Stop all containers in a Compose app without deleting them
+
+- **`docker-compose restart`** - Restart a Compose app that has been stopped
+
+- **`docker volume inspect counter-app_counter-vol | grep Mount`** - Inspect volume mount points
+
+### Docker Compose Commands Summary
+
+- **`docker-compose up`** - The command to deploy a Compose app. It expects the Compose file to be called `docker-compose.yml` or `docker-compose.yaml`, but you can specify a custom filename with the `-f` flag. It's common to start the app in the background with the `-d` flag.
+
+- **`docker-compose stop`** - Will stop all of the containers in a Compose app without deleting them from the system. The app can be easily restarted with `docker-compose restart`.
+
+- **`docker-compose rm`** - Will delete a stopped Compose app. It will delete containers and networks, but it will not delete volumes and images.
+
+- **`docker-compose restart`** - Will restart a Compose app that has been stopped with `docker-compose stop`. If you have made changes to your Compose app since stopping it, these changes will not appear in the restarted app. You will need to re-deploy the app to get the changes.
+
+- **`docker-compose ps`** - Will list each container in the Compose app. It shows current state, the command each one is running, and network ports.
+
+- **`docker-compose down`** - Will stop and delete a running Compose app. It deletes containers and networks, but not volumes and images.
+
+
+
+EXAMPLE of Docker-compose.yml
+```bash 
+version: "3.8"
+services:
+  web-fe:
+    build: .
+    command: python app.py
+    ports:
+      - target: 5000
+      published: 5000
+    networks:
+      - counter-net
+    volumes:
+      - type: volume
+      source: counter-vol
+      target: /code
+  redis:
+    image: "redis:alpine"
+    networks:
+      counter-net:
+networks:
+  over-net:
+    driver: overlay
+    attachable: true
+volumes:
+  counter-vol:
+
+```
+
+# Docker-compose Commands
+
+- **`docker-compose up`** - to lunch docker compose.
+
+By default, docker-compose up expects the name of the Compose ﬁle to docker-compose.yml. If your Compose
+ﬁle has a diﬀerent name, you need to specify it with the -f ﬂag.
+- **`docker-compose -f <docker-composer name> up`**
+
+- **`docker-compose -f prod-equus-bass.yml up -d`** - to run it in the background deamon.
+
+to brind the application down or stop it
+
+- **`docker-compose down`** 
+
+- docker-compose ps
+
+- docker-compose top
+- docker-compose stop
+- docker-compose restart
+
+- docker volume inspect counter-app_counter-vol | grep Mount
+
+```bash
+docker-compose up is the command to deploy a Compose app. It expects the Compose ﬁle to be called
+docker-compose.yml or docker-compose.yaml, but you can specify a custom ﬁlename with the -f ﬂag.
+It’s common to start the app in the baground with the -d ﬂag.
+• docker-compose stop will stop all of the containers in a Compose app without deleting them from the
+system. e app can be easily restarted with docker-compose restart.
+• docker-compose rm will delete a stopped Compose app. It will delete containers and networks, but it will
+not delete volumes and images.
+• docker-compose restart will restart a Compose app that has been stopped with docker-compose stop.
+If you have made changes to your Compose app since stopping it, these anges will not appear in the
+restarted app. You will need to re-deploy the app to get the changes.
+• docker-compose ps will list each container in the Compose app. It shows current state, the command
+each one is running, and network ports.
+• docker-compose down will stop and delete a running Compose app. It deletes containers and networks,
+but not volumes and images.
+``` 
+
+
