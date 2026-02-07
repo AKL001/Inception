@@ -22,7 +22,18 @@
   - [Container Lifecycle](#container-lifecycle)
   - [Port Mappings](#port-mappings)
   - [Container Commands Reference](#container-commands-reference)
-
+- [Chapter 4: Containerizing an Application](#chapter-4-containerizing-an-application)
+  - [Example Dockerfile](#example-dockerfile)
+  - [Building the Image](#building-the-image)
+  - [Multi-stage Builds](#multi-stage-builds)
+  - [Squashing Images](#squashing-images)
+  - [Dockerfile Commands Summary](#dockerfile-commands-summary)
+- [Chapter 5: Deploying Apps with Docker Compose](#chapter-5-deploying-apps-with-docker-compose)
+  - [Microservices](#microservices)
+  - [YAML File Structure](#yaml-file-structure)
+  - [Example docker-compose.yml](#example-docker-composeyml)
+  - [Docker Compose Commands](#docker-compose-commands)
+  - [Docker Compose Commands Summary](#docker-compose-commands-summary)
 ---
 
 ## Chapter 1: Docker Fundamentals
