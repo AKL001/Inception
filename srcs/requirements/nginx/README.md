@@ -5,7 +5,6 @@ in `default.conf`
 server {
     # Listen on port 443 for SSL/HTTPS traffic
     listen 443 ssl;
-    listen [::]:443 ssl;
 
     server_name localhost;
 
@@ -62,7 +61,9 @@ RUN mkdir -p /etc/nginx/ssl
 # We generate the cert INSIDE the image for this demo.
 # In production, you would typically mount these from the host.
 RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    # generating the private key
     -keyout /etc/nginx/ssl/self-signed.key \
+    # generating the certificate 
     -out /etc/nginx/ssl/self-signed.crt \
     -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
 
@@ -77,4 +78,12 @@ EXPOSE 80 443
 # 8. Command
 # Run NGINX in the foreground so the container doesn't exit immediately.
 CMD ["nginx", "-g", "daemon off;"]
+```
+
+```bash 
+    TLSv1.3
+
+    we need the session key , which secure the connection between the server and client this is achived by the TLSv1.2 and TLSv1.3 
+
+    using the diffie-hellman key exchange
 ```
