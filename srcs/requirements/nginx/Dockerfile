@@ -17,7 +17,7 @@ COPY conf/default.conf /etc/nginx/http.d/default.conf
 # 3. COPY your HTML file (optional, to pre-fill the volume)
 # COPY data/html/index.html /usr/share/nginx/html/index.html
 # this for container in the same nethwork to be able to comminicate with the server
-EXPOSE 80 443
+EXPOSE 443
 # we need this CMD cuz nginx by default run in the daemon , we have to disable that cuz if we dont Docker by default 
 # kill container if there is no process runing in the forground
 CMD ["nginx", "-g", "daemon off;"]

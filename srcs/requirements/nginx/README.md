@@ -69,7 +69,7 @@ RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 # 6. Configuration
 # Copy our custom configuration file from the host into the container.
-COPY default.conf /etc/nginx/http.d/default.conf
+COPY default.conf /etc/nginx/http.d/default.conf # needs its own volume 
 
 # 7. Ports
 # Expose HTTP and HTTPS ports.
@@ -86,4 +86,28 @@ CMD ["nginx", "-g", "daemon off;"]
     we need the session key , which secure the connection between the server and client this is achived by the TLSv1.2 and TLSv1.3 
 
     using the diffie-hellman key exchange
+
+    
 ```
+
+
+# about NGINX  :
+
+- NGINX critical functions :
+    1) web server : act as a web server
+    2) Reverse proxy : can also act or be configurate as a reverse proxy meaning the proxy do request or handle the request , as a middle man between the server and client
+    3) load blancer 
+    4) chaching server
+    5) mail proxy : can handle mail protocols like (IMAP , POP3, SMPT)
+
+- Core Features Nginx offers the following core features:
+    High Performance: Nginx is designed to handle high traffic with minimal resource consumption. Its asynchronous, event-driven architecture allows it to manage thousands of concurrent connections efficiently.
+    Scalability: Its modular design and support for load balancing enable it to scale horizontally across multiple servers. This makes it suitable for both small sites and large-scale applications.
+    Reliability: With built-in features for failover and load balancing, Nginx ensures high availability and reliability for web applications.
+    Configurability: Nginx configurations are highly flexible, allowing for fine-tuned control over server behavior, including URL routing, security settings, and caching policies.
+    Security: Nginx includes numerous security features such as SSL/TLS support, rate limiting, and denial of service protection to secure web applications from various threats.
+
+- How Nginx Works Nginx uses an event-driven architecture to handle requests. Unlike traditional servers that use a thread-per-request model, Nginx handles requests asynchronously, which allows it to process multiple requests in parallel with minimal resource overhead.
+    Event-Driven Architecture: Nginx processes requests using a non-blocking approach. This means that it can handle multiple requests simultaneously without waiting for each request to complete.
+    Worker Processes: Nginx operates using worker processes that handle incoming requests. Each worker can manage thousands of connections, thanks to the event-driven model.
+    Configuration: Nginx configurations are specified in plain text files, usually located in /etc/nginx/nginx.conf. These configurations allow you to define server blocks, location blocks, and other directives to control how Nginx handles requests.
