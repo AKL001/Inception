@@ -542,11 +542,15 @@ To deal with **non-persistent data**, Docker containers handle that automaticall
 
 To deal with **persistent data**, the container needs to store it in a **volume**. Volumes are separate objects that have their lifecycles decoupled from containers.
 
+---
+
 ### Container Storage
 
 The writable container layer exists in the filesystem of the Docker host, called (local storage, ephemeral storage, or graphdriver storage).
 
 **Linux path:** `/var/lib/docker/<storage-driver>/...`
+
+---
 
 ### Persistent Data Volumes
 
@@ -555,29 +559,238 @@ When you have persistent data or data that you want to save even if you stop the
 - Volumes are independent objects that are not tied to the lifecycle of a container
 - Volumes enable multiple containers on different Docker hosts to access and share the same data
 
-#### Creating and Using Volumes
+---
 
-1. **`docker volume create <volume_name>`** - Create a volume
+### Volume Types: Named Volumes vs Bind Mounts
 
-2. Then mount that volume to the container
+There are two main ways to persist data in Docker. They look similar but serve different purposes.
 
-**Note:** If you did not specify the path for the host, you can find that volume by using `docker volume inspect <name>` and look for `Mountpoint`.
+#### Named Volumes
 
-#### How to Delete a Docker Volume
+A **named volume** is fully managed by Docker. Docker decides where the data lives on the host filesystem (under `/var/lib/docker/volumes/`). You refer to it by a name you choose, not a path.
 
-- **`docker volume rm <volume_name>`** - Use this to delete a specific volume
-- **`docker volume prune`** - Deletes all the unused volumes
+- Docker manages the location on the host
+- The volume persists even if no container is using it
+- Easy to back up, migrate, and share between containers
+- Best for **production data** — databases, app state, logs
 
-#### Mounting a Volume to a Container
+**Use case:** You're running a PostgreSQL container and you want the database files to survive container restarts and re-deployments. You don't care *where* on the host the files are stored, you just want them safe.
 
-We need to run a container with some specific flags:
+```bash
+# Create a named volume
+docker volume create mydata
 
-- **`docker container run -dit --name <container_name> --mount source=<volume_name>,target=<path_in_container> <image_name>`** - This would run the container and mount it with the source and target.
-  - `-d` for detach from the terminal and run the container in the background
-  - `-i` keeps STDIN (Standard Input) open even if not attached
-  - `-t` makes the container think it's connected to a real terminal screen
+# More explicit creation using the local driver with options
+docker volume create \
+  --driver local \
+  --opt type=none \
+  --opt o=bind \
+  --opt device=/your/host/path \
+  mydata
 
-- **`docker volume ls`** - To see if the volume is created
+# Mount it to a container
+docker container run -dit \
+  --name mycontainer \
+  --mount source=mydata,target=/app/data \
+  nginx
+```
+
+> **Note:** The basic `docker volume create mydata` is enough for most use cases. The `--driver local` with `--opt` flags are for advanced scenarios where you want to pin the named volume to a specific host path or use a special filesystem type (like tmpfs, nfs, etc.).
+
+---
+
+#### Bind Mounts
+
+A **bind mount** maps a **specific path on your host machine** directly into the container. You are in full control of the location — Docker doesn't manage it.
+
+- You specify the exact host path
+- The host directory must already exist
+- Changes on the host are immediately reflected inside the container and vice versa
+- Best for **development** — mounting your source code into a container so edits are live
+
+**Use case:** You're developing a Node.js app and want the container to always run your latest code without rebuilding the image every time you change a file.
+
+```bash
+# Bind mount using --mount (recommended, explicit)
+docker container run -dit \
+  --name devcontainer \
+  --mount type=bind,source=/home/user/myapp,target=/app \
+  node:18
+
+# Bind mount using the shorthand -v flag (older syntax)
+docker container run -dit \
+  --name devcontainer \
+  -v /home/user/myapp:/app \
+  node:18
+```
+
+> **Note:** With bind mounts, if the host path doesn't exist, Docker will error (with `--mount`) or create it as a directory (with `-v`). Using `--mount` is safer and more explicit.
+
+---
+
+### Named Volume vs Bind Mount — Key Differences
+
+| | Named Volume | Bind Mount |
+|---|---|---|
+| **Who manages location** | Docker | You |
+| **Host path** | Auto (under `/var/lib/docker/volumes/`) | You specify it |
+| **Use case** | Production data, databases | Local development, config files |
+| **Portability** | High — works the same on any Docker host | Low — depends on the host path existing |
+| **Performance** | Optimized by Docker | Depends on host filesystem |
+| **Created with** | `docker volume create` | Just a host path, no pre-creation needed |
+
+---
+
+### Using Volumes in a Docker Compose YAML File
+
+#### Named Volume in Compose
+
+```yaml
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # named volume mounted to container path
+
+volumes:
+  pgdata:                                 # declare the named volume here
+    driver: local                         # local driver (default)
+```
+
+> The `volumes:` block at the bottom of the file tells Compose to create and manage this volume. If it already exists, Compose reuses it.
+
+#### Named Volume Pinned to a Host Path in Compose
+
+This is the most common real-world pattern. You get the benefits of a named volume (Docker tracks it, shows in `docker volume ls`) but the data lives at a path **you choose** on the host instead of the default Docker-managed location.
+
+```yaml
+services:
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress_app
+    ports:
+      - "8080:80"
+    volumes:
+      - wp_data:/var/www/html        # named volume mounted into the container
+
+volumes:
+  wp_data:
+    driver: local
+    driver_opts:
+      type: none                     # (1) no special filesystem type
+      device: /home/user/wp_data     # (2) the exact host path you want the data at
+      o: bind                        # (3) mount it as a bind operation
+```
+
+**What do `type`, `device`, and `o` actually mean?**
+
+These three options come from the Linux `mount` command — Docker's local driver passes them directly to the OS when setting up the volume. Think of it as Docker telling Linux:
+> *"Mount this host directory into the volume using these options"*
+
+| Option | What it means |
+|---|---|
+| `type: none` | No special filesystem — use whatever the host directory already is (ext4, xfs, etc.). You're not creating a new filesystem, just reusing an existing path. |
+| `device: /your/path` | The actual host directory to use as the storage source. This is the path where your data will physically live on the host machine. |
+| `o: bind` | The mount operation type. `bind` means "bind this host path into the volume location" — it's the same concept as a bind mount, but expressed through the named volume system. |
+
+**Why `o: bind` specifically?**
+
+The `o` field stands for **options** and it maps to Linux mount options. When you write `o: bind`, you're passing the `bind` flag to the Linux kernel's mount syscall, which tells it:
+> *"Don't create a new mount point — just mirror this existing host directory at this location"*
+
+Without `o: bind`, the local driver would try to interpret `device` as a block device or filesystem image (like a `.img` file), which would fail for a regular directory. The `bind` option is what makes it work with a normal folder path.
+
+**Equivalent command using `docker volume create`:**
+
+```bash
+docker volume create \
+  --driver local \
+  --opt type=none \
+  --opt device=/home/user/wp_data \
+  --opt o=bind \
+  wp_data
+```
+
+> **Important:** The host path (`device`) must already exist before Docker tries to use it. Create it first: `mkdir -p /home/user/wp_data`
+
+---
+
+#### Bind Mount in Compose
+
+```yaml
+services:
+  app:
+    image: node:18
+    container_name: node_app
+    working_dir: /app
+    volumes:
+      - type: bind
+        source: ./myapp          # path on your host (relative to the compose file)
+        target: /app             # path inside the container
+    command: npm run dev
+```
+
+> You do **not** declare bind mounts in the top-level `volumes:` block — only named volumes go there.
+
+#### Using Both Together (Common Pattern)
+
+```yaml
+services:
+  app:
+    image: node:18
+    volumes:
+      - type: bind
+        source: ./src            # live source code from host
+        target: /app/src
+      - type: volume
+        source: node_modules     # named volume for node_modules (faster than bind)
+        target: /app/node_modules
+
+volumes:
+  node_modules:
+    driver: local
+```
+
+---
+
+### Creating and Using Volumes — Full Command Reference
+
+```bash
+# Create a basic named volume
+docker volume create mydata
+
+# Create a named volume with explicit local driver
+docker volume create --driver local mydata
+
+# Inspect a volume (find its Mountpoint on the host)
+docker volume inspect mydata
+
+# List all volumes
+docker volume ls
+
+# Mount a named volume to a container
+docker container run -dit \
+  --name mycontainer \
+  --mount source=mydata,target=/data \
+  ubuntu
+
+# Mount a bind mount to a container
+docker container run -dit \
+  --name devcontainer \
+  --mount type=bind,source=/home/user/project,target=/app \
+  node:18
+
+# Delete a specific volume
+docker volume rm mydata
+
+# Delete all unused volumes (not attached to any container)
+docker volume prune
+```
+
+---
 
 ### Sharing Storage Across Hosts or Cluster Nodes
 
@@ -587,8 +800,13 @@ Building a setup like this requires a lot of things. You need access to a specia
 
 Docker Hub is the best place to find volume plugins. Login to Docker Hub, select the view to show plugins instead of containers, and filter results to only show Volume plugins. Once you've located the appropriate plugin for your storage system, you create any configuration files it might need, and install it with `docker plugin install`.
 
-- **`docker plugin ls`** - List installed plugins
+```bash
+# Install a volume plugin
+docker plugin install <plugin_name>
 
+# List installed plugins
+docker plugin ls
+```
 ---
 
 ## Chapter 8: Docker Security
