@@ -362,7 +362,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```
 HTTP (port 80)
-    └── NGINX 301 redirect
+    └── NGINX 301 redirect (we dont need to do this in Inception)
             └── HTTPS (port 443)
                     └── TLS Handshake
                             ├── Certificate verification  (authentication)
@@ -370,3 +370,65 @@ HTTP (port 80)
                             └── Session key derived       (symmetric encryption)
                                     └── Encrypted application data flows
 ```
+
+## Nginx Architecture
+
+### The problem with thread-per-request
+
+Traditional servers assign one thread per request. Each thread costs ~1–2 MB of stack memory, so under high concurrency RAM and CPU context-switching overhead grow linearly — a hard scalability ceiling.
+
+Nginx solves this with an **event-driven, non-blocking** architecture.
+
+---
+
+### Process model
+
+```
+Master Process
+├── Cache Manager
+├── Cache Loader
+├── Worker Process 1  (1 per CPU core)
+├── Worker Process 2
+└── Worker Process N
+```
+
+**Master process** — doesn't handle traffic. It spawns and monitors workers, manages cache processes, and reloads config without downtime.
+
+**Worker processes** — each runs a single thread with an event loop that handles thousands of connections concurrently. The worker count defaults to the number of CPU cores but is configurable:
+
+```nginx
+worker_processes auto;  # matches CPU core count
+```
+
+---
+
+### Request lifecycle
+
+1. Client opens a **TCP connection** via a **socket**.
+2. The OS hands it to a worker process.
+3. The worker registers the socket with **epoll** and moves on — it does not wait.
+4. When I/O is ready, the kernel notifies the worker.
+5. The worker handles the event, responds, and loops back.
+
+---
+
+### epoll — non-blocking I/O
+
+Instead of blocking on slow operations (disk read, upstream response), the worker tells the kernel:
+
+> *"Notify me when this is ready — I'll handle other events in the meantime."*
+
+`epoll` scales to tens of thousands of file descriptors with near-constant overhead, which is why a single worker can handle massive concurrency at low CPU and RAM cost.
+
+---
+
+### Summary
+
+| | |
+|---|---|
+| Master process | Manages workers, config, cache |
+| Worker processes | 1 per CPU core · never block |
+| Client connection | TCP socket → handed to a worker |
+| Event loop | Single thread per worker, all connections |
+| epoll | Kernel notifies Nginx when I/O is ready |
+| Thread-per-request | ❌ Not used — too expensive at scale |
