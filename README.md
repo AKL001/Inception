@@ -856,3 +856,13 @@ If namespaces are about **isolation**, control groups (cgroups) are about **sett
 Containers are isolated from each other but all share a common set of OS resources - things like CPU, RAM, and network bandwidth.
 
 Cgroups let us set limits on each of these so a single container cannot consume everything and cause a denial of service (DoS) attack.
+
+### Exra command
+```bash 
+
+  docker-compose down -v : to delete volumes also 
+  docker start <container_name>
+  docker run  --name <container_name> --env-file </path> <image>
+  
+
+```
