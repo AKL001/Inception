@@ -528,6 +528,12 @@ Imagine we have 2 different hosts, Host A and Host B, both on the same network, 
 **IPvlan**:
 - Advanced networking option for more complex setups
 
+### Additional notes 
+
+- The contianer can talk to the host via Gateway, meaning if the container want to talk to the internet , uses the Gateway and forward that to the host . the host handle that request.
+
+- To create full isolated contianer we need to specify the network device = none.
+
 ---
 
 ## Chapter 7: Docker Volumes and Persistent Data

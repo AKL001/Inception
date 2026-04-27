@@ -27,4 +27,3 @@ skip-networking: by default MariaDB will not listen for TCP/IP connections at al
 that's why we need to disable it or comment it.
 
 
-
