@@ -3,6 +3,7 @@
 
 # The full request flow
 
+```bash
 Client (Browser)
       ↓  HTTP request
     Nginx
@@ -15,10 +16,10 @@ Client (Browser)
     Nginx
       ↓  takes that HTML string, wraps it in HTTP response
 Client (Browser)
-
+```
 
 # Full  picture
-
+```bash
 Browser → GET /wp-login.php
               ↓
            Nginx
@@ -39,3 +40,4 @@ Browser → GET /wp-login.php
    wraps it in HTTP response
               ↓
            Browser
+```
