@@ -1,68 +1,68 @@
 services:
-  mariadb:
-    image: "mariadb:inception"
-    build: 
-      context: ./mariadb
-      dockerfile: Dockerfile
-    container_name: mariadb_app
-      # host_port:container_port 
-    volumes:
-      - db_vol:/var/lib/mysql
-    networks:
-      - inception_net
-    environment:
-      - HOSTNAME=${DOMAIN_NAME}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
-      #return an exit signale 
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
-  # wordpress:
-  #   depends_on:
-  #     mariadb:
-  #       condition: service_healthy
-  #   build:
-  #     context: ./wordpress
+  # mariadb:
+  #   image: "mariadb:inception"
+  #   build: 
+  #     context: ./mariadb
   #     dockerfile: Dockerfile
-  #   container_name: wordpress_app
+  #   container_name: mariadb_app
+  #     # host_port:container_port 
   #   volumes:
-  #     - wp_vol:/var/www/html
+  #     - db_vol:/var/lib/mysql
   #   networks:
   #     - inception_net
   #   environment:
-  #   - WORDPRESS_DB_HOST=${WORDPRESS_DB_HOST}
-  #   - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
-  #   - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
-  #   - WORDPRESS_URL=${WORDPRESS_URL}
-  #   - WORDPRESS_TITLE=${WORDPRESS_TITLE}
-  #   - WORDPRESS_ADMIN_USER=${WORDPRESS_ADMIN_USER}
-  #   - WORDPRESS_ADMIN_EMAIL=${WORDPRESS_ADMIN_EMAIL}
-  #   - WORDPRESS_USER=${WORDPRESS_USER}
-  #   - WORDPRESS_USER_EMAIL=${WORDPRESS_USER_EMAIL}
-  # restart: unless-stopped
+  #     - HOSTNAME=${DOMAIN_NAME}
+  #     - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+  #     - MYSQL_DATABASE=${MYSQL_DATABASE}
+  #     - MYSQL_USER=${MYSQL_USER}
+  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
+  #     #return an exit signale 
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 5
+  #     start_period: 10s
+  #   restart: unless-stopped
 
-  # nginx:
-  #   build:
-  #     context: ./nginx
-  #     dockerfile: Dockerfile
-  #   container_name: nginx_app
-  #   ports:
-  #     - "443:443"
-  #   volumes:
-  #     - wp_vol:/var/www/html
-  #   networks:
-  #     - inception_net
-  #   depends_on:
-  #     - wordpress          # start wordpress before nginx
+  wordpress:
+    # depends_on:
+    #   mariadb:
+    #     condition: service_healthy
+    build:
+      context: ./wordpress
+      dockerfile: Dockerfile
+    container_name: wordpress_app
+    volumes:
+      - wp_vol:/var/www/html
+    networks:
+      - inception_net
+    restart: unless-stopped
+    # environment:
+    # - WORDPRESS_DB_HOST=${WORDPRESS_DB_HOST}
+    # - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
+    # - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+    # - WORDPRESS_URL=${WORDPRESS_URL}
+    # - WORDPRESS_TITLE=${WORDPRESS_TITLE}
+    # - WORDPRESS_ADMIN_USER=${WORDPRESS_ADMIN_USER}
+    # - WORDPRESS_ADMIN_EMAIL=${WORDPRESS_ADMIN_EMAIL}
+    # - WORDPRESS_USER=${WORDPRESS_USER}
+    # - WORDPRESS_USER_EMAIL=${WORDPRESS_USER_EMAIL}
 
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx_app
+    ports:
+      - "443:443"
+    volumes:
+      - wp_vol:/var/www/html
+    networks:
+      - inception_net
+    depends_on:
+      - wordpress          # start wordpress before nginx
+    # restart: unless-stopped
 
 
 networks:
@@ -70,16 +70,16 @@ networks:
     driver: bridge
 
 volumes:
-  # wp_vol:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     o: bind
-  #     device: /home/${USER}/data/wordpress
-  db_vol:
-    name: db_vol
+  wp_vol:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/${USER}/data/mariadb
+      device: /home/${USER}/data/wordpress
+  # db_vol:
+  #   name: db_vol
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     o: bind
+  #     device: /home/${USER}/data/mariadb
