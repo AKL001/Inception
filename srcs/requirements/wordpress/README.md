@@ -41,3 +41,17 @@ Browser → GET /wp-login.php
               ↓
            Browser
 ```
+
+# Commands
+
+```bash
+  - wp core download --path=<>
+  - RUN echo "memory_limit=512M" > /etc/php83/conf.d/memory-limit.ini
+  - wp user list 
+  # Create a second regular user
+  wp user create $WORDPRESS_USER $WORDPRESS_USER_EMAIL \
+    --role=author \
+    --user_pass=$WORDPRESS_USER_PASSWORD \
+    # to by pass the error since every thing in docker runes as root we by pass that error msg by --allow-root
+    --allow-root
+```

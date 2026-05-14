@@ -24,14 +24,19 @@ RUN mkdir -p /var/www/html && \
     # so the wp-cli /usr/bin/php83 
 
     
-COPY conf/www.conf /etc/php83/php-fpm.d/www.conf
-# COPY tools/wordpress-entrypoint.sh /usr/local/bin/
+# Fix PHP memory limit for WP-CLI
+RUN echo "memory_limit=512M" > /etc/php83/conf.d/memory-limit.ini
 
-# RUN chmod +x /usr/local/bin/wordpress-entrypoint.sh
+COPY conf/www.conf /etc/php83/php-fpm.d/www.conf
+
+COPY tools/wordpress_entrypoint.sh /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/wordpress_entrypoint.sh
 
 WORKDIR /var/www/html
 
 EXPOSE 9000
 
-# ENTRYPOINT ["/usr/local/bin/wordpress-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/wordpress_entrypoint.sh"]
+
 CMD ["php-fpm83", "-F"]
