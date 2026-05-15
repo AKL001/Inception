@@ -27,4 +27,7 @@ EOF
 fi
 
 echo "Starting MariaDB server..."
-exec "$@" # this means run CMD  arguments here , we replace the PID 1 with the mariadb , cuz the PID 1 at first would be the .sh  file configuration and then we  replace it with mariadb PID 
+# this means run CMD  arguments here 
+# , we replace the PID 1 with the mariadb , 
+# cuz the PID 1 at first would be the .sh  file configuration and then we  replace it with mariadb PID 
+exec "$@" 

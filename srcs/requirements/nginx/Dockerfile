@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.23 
 # --no-cache so our image could be light 
 RUN apk add --no-cache nginx openssl
 # setting a dirrectory 
