@@ -67,6 +67,20 @@ services:
       - wordpress      
     restart: unless-stopped
 
+################## BONUS REDIS ##################
+
+  redis: 
+    image: "redis"
+    build:
+      context: requirements/bonus/redis
+      dockerfile: Dockerfile
+    container_name: redis
+    ports:
+      - "6379"
+    networks:
+      - inception_net
+
+      
 ################## NETWORKS ##################
 networks:
   inception_net:

@@ -1,18 +1,26 @@
 FROM alpine:3.23  
 
 RUN apk update && apk add --no-cache \
+    bash \
+    wget \
+    unzip \
     php83 \
     php83-fpm \
     php83-mysqli \
+    php83-pecl-redis \
     php83-json \
     php83-dom \
     php83-mbstring \
     php83-openssl \
     php83-xml \
     php83-phar \
-    php83-session \
-    wget \
-    bash 
+    php83-curl \
+    php83-zip \
+    php83-zlib \
+    php83-tokenizer \
+    php83-ctype \
+    php83-posix \
+    php83-session
 
 RUN mkdir -p /var/www/html && \
     wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
