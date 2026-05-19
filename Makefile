@@ -5,7 +5,7 @@ DOMAIN				= $(USER).42.fr
 VOLUME_PATH			= /home/$(USER)/data
 WORDPRESS_VOLUME	= $(VOLUME_PATH)/wordpress
 MARIADB_VOLUME		= $(VOLUME_PATH)/mariadb
-COMPOSE				= docker compose -f srcs/docker-compose.yaml
+COMPOSE				= docker compose -f srcs/docker-compose.yml
 
 # ==============================================================================
 # Rules
